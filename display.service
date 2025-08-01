@@ -1,0 +1,19 @@
+[Unit]
+Description=Display Buddha TV
+After=default.target
+
+[Service]
+Type=simple
+NotifyAccess=all
+Restart=always
+RestartSec=5
+WorkingDirectory=/home/pi/buddha
+ExecStart=/home/pi/buddha/.venv/bin/python /home/pi/buddha/run_tv.py
+# WatchdogSec=1min
+RuntimeMaxSec=1h
+StandardOutput=journal
+StandardError=journal
+Environment="PATH=/home/pi/buddha/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+[Install]
+WantedBy=default.target
