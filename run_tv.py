@@ -278,11 +278,51 @@ def get_screen_resolution() -> tuple[int, int]:
     return width, height
 
 
+def generate_static(display_width: int,
+                    display_height: int,
+                    static_size : int) -> np.ndarray:
+    """
+    Generates a frame of classic TV static with "pixels" that
+    are static_size x static_size (in pixels).
+
+    Parameters
+    ----------
+    display_width : int
+        The width of the desired frame.
+    display_height : int
+        The height of the desired frame.
+    static_size : int
+        The height and width of each "static snowflake" in pixels.
+
+    Returns
+    -------
+    np.ndarray
+        A static frame.
+    """
+    h, w = display_height // static_size, display_width // static_size
+
+    # Create small static noise image (grayscale)
+    static_small = np.random.choice([0, 255],
+                                    size=(h, w),
+                                    p=[0.5, 0.5]).astype('uint8')
+
+    # Resize small image to full display size (still grayscale 2D)
+    static_large = cv2.resize(static_small,
+                              (display_width, display_height),
+                              interpolation=cv2.INTER_NEAREST)
+
+    # Convert to 3 channels by stacking grayscale image 3 times
+    static = np.stack([static_large]*3, axis=2)  # shape (H, W, 3)
+
+    return static
+
+
 def display_face(display_width : int,
                  display_height : int,
                  relative_height : float,
                  smoothing : float,
                  face_detection_confidence : float,
+                 static_size : int,
                  debug : bool) -> None:
     """
     Starts webcam video capture and tracks a single face in real time.
@@ -312,6 +352,8 @@ def display_face(display_width : int,
     face_detection_confidence : float
         Confidence required for mediapipe to detect a face. For instance,
         0.1 is very permissive and 0.9 is very strict.
+    static_size : int
+        The height and width of each static snowflake square (in pixels).
     debug : bool
         Show the debug video with centroid, bounding box, and un-cropped video stream.
     
@@ -339,6 +381,8 @@ def display_face(display_width : int,
 
     # Main event loop.
     while True:
+        # Initialize the cropped frame.
+        cropped = None
 
         # Capture a single frame.
         ret, frame = cap.read()
@@ -352,11 +396,11 @@ def display_face(display_width : int,
         results = face_detection.process(rgb_frame)
 
         # If a face is detected, continue.
-        if results.detections:
+        if results.detections: # type: ignore
             centroids = []
             bboxes = []
 
-            for detection in results.detections:
+            for detection in results.detections: # type: ignore
                 bboxC = detection.location_data.relative_bounding_box
                 bbox = [bboxC.xmin, bboxC.ymin, bboxC.width, bboxC.height]
                 centroid = get_centroid(bbox)
@@ -393,18 +437,18 @@ def display_face(display_width : int,
 
             prev_bbox = smoothed_bbox
 
-            cropped  = crop_with_aspect_ratio(frame=frame,
-                                              centroid=tracked_centroid,
-                                              bbox=smoothed_bbox,
-                                              target_aspect_ratio=display_width/display_height,
-                                              relative_height=relative_height)
+            cropped = crop_with_aspect_ratio(frame=frame,
+                                             centroid=tracked_centroid,
+                                             bbox=smoothed_bbox,
+                                             target_aspect_ratio=display_width/display_height,
+                                             relative_height=relative_height)
 
         else:
             # Reset tracking if no face is detected
             tracked_centroid = None
             prev_bbox = None
 
-        if debug:
+        if debug and (cropped is not None):
             # Draw tracking box
             h, w, _ = frame.shape
             x1 = int(smoothed_bbox[0] * w)
@@ -425,7 +469,17 @@ def display_face(display_width : int,
                 break
         
         else:
-            cv2.imshow("Webcam", cropped)
+            # If a face is detected, proceed to display it.
+            if cropped is not None:
+                display_image = cropped
+
+            # If no face is detected, display static.
+            else:
+                display_image = generate_static(display_width=display_width,
+                                                display_height=display_height,
+                                                static_size=static_size)
+        
+            cv2.imshow("Webcam", display_image)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
@@ -443,8 +497,9 @@ if __name__ == "__main__":
 
     # Start the display.
     display_face(display_width=display_width,
-               display_height=display_height,
-               relative_height=1.2,
-               smoothing=0.6,
-               face_detection_confidence=0.5,
-               debug=False)
+                 display_height=display_height,
+                 relative_height=1.2,
+                 smoothing=0.6,
+                 face_detection_confidence=0.5,
+                 static_size=4,
+                 debug=False)
