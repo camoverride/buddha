@@ -260,7 +260,7 @@ def get_screen_resolution() -> tuple[int, int]:
     elif system == "Linux":
         distro = platform.freedesktop_os_release().get("ID", "").lower()
 
-        if "raspbian" in distro or "raspberrypi" in distro:
+        if "debian" in distro or "raspberrypi" in distro:
             # Raspbian: Use fbset
             output = subprocess.check_output(["fbset"], text=True)
             match = re.search(r"mode\s+\"(\d+)x(\d+)\"", output)
