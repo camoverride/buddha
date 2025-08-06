@@ -239,14 +239,14 @@ def crop_with_aspect_ratio(frame: np.ndarray,
     return frame[y1:y2, x1:x2]
 
 
-def get_screen_resolution() -> Optional[tuple[int, int]]:
+def get_screen_resolution() -> tuple[int, int]:
     """
     Detects the current operating system (Raspbian, Ubuntu, macOS)
     and returns the width and height of the primary monitor in pixels.
 
     Returns
     -------
-    Optional[tuple[int, int]]
+    tuple[int, int]
         A tuple (width, height) representing screen resolution.
         Returns None if detection fails or unsupported platform.
     """
@@ -278,7 +278,8 @@ def get_screen_resolution() -> Optional[tuple[int, int]]:
             match = re.search(r"current\s+(\d+)\s+x\s+(\d+)", output)
             if match:
                 width, height = map(int, match.groups())
-    
+
+
     return width, height
 
 
