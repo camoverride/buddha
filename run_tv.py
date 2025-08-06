@@ -93,7 +93,7 @@ def crop_face_from_frame(frame: np.ndarray,
 
 def smooth_bbox(prev_bbox: tuple[float, float, float, float],
                 new_bbox: tuple[float, float, float, float],
-                alpha: float = 0.6) -> list[float]:
+                alpha: float = 0.6) -> tuple[float, float, float, float]:
     """
     Smooths a bounding box using exponential moving average (EMA)
     to reduce jitter between frames.
@@ -110,11 +110,13 @@ def smooth_bbox(prev_bbox: tuple[float, float, float, float],
 
     Returns
     -------
-    list[float]
+    tuple[float, float, float, float]
         A smoothed bounding box [xmin, ymin, width, height], normalized.
     """
-    return [alpha * p + (1 - alpha) * n \
-            for p, n in zip(prev_bbox, new_bbox)]
+    return (alpha * prev_bbox[0] + (1 - alpha) * new_bbox[0],
+            alpha * prev_bbox[1] + (1 - alpha) * new_bbox[1],
+            alpha * prev_bbox[2] + (1 - alpha) * new_bbox[2],
+            alpha * prev_bbox[3] + (1 - alpha) * new_bbox[3])
 
 
 def smooth_point(prev_point: tuple[float, float],
@@ -402,7 +404,7 @@ def display_face(display_width : int,
 
             for detection in results.detections: # type: ignore
                 bboxC = detection.location_data.relative_bounding_box
-                bbox = [bboxC.xmin, bboxC.ymin, bboxC.width, bboxC.height]
+                bbox = (bboxC.xmin, bboxC.ymin, bboxC.width, bboxC.height)
                 centroid = get_centroid(bbox)
                 bboxes.append(bbox)
                 centroids.append(centroid)
@@ -437,18 +439,19 @@ def display_face(display_width : int,
 
             prev_bbox = smoothed_bbox
 
-            cropped = crop_with_aspect_ratio(frame=frame,
-                                             centroid=tracked_centroid,
-                                             bbox=smoothed_bbox,
-                                             target_aspect_ratio=display_width/display_height,
-                                             relative_height=relative_height)
+            if tracked_centroid is not None:
+                cropped = crop_with_aspect_ratio(frame=frame,
+                                                centroid=tracked_centroid,
+                                                bbox=smoothed_bbox,
+                                                target_aspect_ratio=display_width/display_height,
+                                                relative_height=relative_height)
 
         else:
             # Reset tracking if no face is detected
             tracked_centroid = None
             prev_bbox = None
 
-        if debug and (cropped is not None):
+        if debug and (cropped is not None) and (tracked_centroid is not None):
             # Draw tracking box
             h, w, _ = frame.shape
             x1 = int(smoothed_bbox[0] * w)
