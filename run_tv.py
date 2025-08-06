@@ -11,7 +11,8 @@ from typing import Optional
 
 def get_centroid(bbox : tuple[float, float, float, float]) -> tuple[float, float]:
     """
-    Computes the centroid of a bounding box around a face.
+    Computes the centroid of a normalized bounding box with coordinates relative
+    to the image dimensions, where (0,0) is the top-left and (1,1) is the bottom-right.
 
     Parameters
     ----------
@@ -77,6 +78,7 @@ def crop_face_from_frame(frame: np.ndarray,
     xmin, ymin, bw, bh = bbox
 
     # Apply padding and clamp to [0, 1]
+    # Note that padding expands the box by a fraction of its size on all sides.
     xmin_p = max(0, xmin - bw * pad)
     ymin_p = max(0, ymin - bh * pad)
     xmax_p = min(1, xmin + bw * (1 + pad))
@@ -237,14 +239,14 @@ def crop_with_aspect_ratio(frame: np.ndarray,
     return frame[y1:y2, x1:x2]
 
 
-def get_screen_resolution() -> tuple[int, int]:
+def get_screen_resolution() -> Optional[tuple[int, int]]:
     """
     Detects the current operating system (Raspbian, Ubuntu, macOS)
     and returns the width and height of the primary monitor in pixels.
 
     Returns
     -------
-    Tuple[int, int]
+    Optional[tuple[int, int]]
         A tuple (width, height) representing screen resolution.
         Returns None if detection fails or unsupported platform.
     """
@@ -367,6 +369,9 @@ def display_face(display_width : int,
     # Start video capture.
     cap = cv2.VideoCapture(0)
 
+    if not cap.isOpened():
+        raise RuntimeError("Failed to open webcam.")
+
     # Initialize centroid and bounding box tracking.
     tracked_centroid: Optional[tuple[float, float]] = None
     prev_bbox: Optional[tuple[float, float, float, float]] = None
@@ -391,18 +396,18 @@ def display_face(display_width : int,
         if not ret:
             break
 
-        # Conver to RGB.
+        # Convert to RGB.
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         # Use mediapipe to process the frame.
         results = face_detection.process(rgb_frame)
 
         # If a face is detected, continue.
-        if results.detections: # type: ignore
+        if results.detections:
             centroids = []
             bboxes = []
 
-            for detection in results.detections: # type: ignore
+            for detection in results.detections:
                 bboxC = detection.location_data.relative_bounding_box
                 bbox = (bboxC.xmin, bboxC.ymin, bboxC.width, bboxC.height)
                 centroid = get_centroid(bbox)
@@ -467,7 +472,7 @@ def display_face(display_width : int,
             cv2.putText(frame, f"Centroid: ({cx_px}, {cy_px})", (cx_px + 10, cy_px),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
     
-            cv2.imshow("Webcam", frame)
+            cv2.imshow("Debug View", frame)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
         
