@@ -3,15 +3,20 @@ import mediapipe as mp
 import random
 import numpy as np
 
-mp_face_detection = mp.solutions.face_detection
+
+
+mp_face_detection = mp.solutions.face_detection  # type: ignore
+
 
 def get_centroid(bbox):
     # bbox: [xmin, ymin, width, height] normalized
     xmin, ymin, w, h = bbox
     return (xmin + w / 2, ymin + h / 2)
 
+
 def euclidean_distance(p1, p2):
     return np.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
+
 
 def crop_face_from_frame(frame, bbox, pad=0.1):
     h, w, _ = frame.shape

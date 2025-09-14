@@ -1,0 +1,14 @@
+# Scaling factor for how much of bounding box height to use as crop height.
+relative_height: 1.2
+
+# The amount of smoothing between frames while tracking faces.
+smoothing: 0.6
+
+# Confidence threshold for face detection. Higher = fewer detections.
+face_detection_confidence: 0.5
+
+# Number of pixels on the height and width of the square static "flakes"
+static_size: 4
+
+# Show debug labels.
+debug: False

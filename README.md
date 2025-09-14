@@ -1,6 +1,9 @@
-# Buddha Watching You Watching TV
+# Buddha Watching You Watching TV 😇
 
-A rif on Nam June Paik.
+Buddha Watching You Watch TV is a contemporary take on Nam June 
+Paik's classic TV Buddha. Tested and ready for a gallery setting.
+
+![Buddha Watching YOU Watch TV](buddha.gif)
 
 
 ## Setup
@@ -15,7 +18,7 @@ A rif on Nam June Paik.
 
 ## Test
 
-- `python run_tv.py`
+- `python run_display.py`
 
 
 ## Run

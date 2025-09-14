@@ -6,13 +6,17 @@ import random
 import re
 import subprocess
 from typing import Optional
+import yaml
 
 
 
-def get_centroid(bbox : tuple[float, float, float, float]) -> tuple[float, float]:
+def get_centroid(
+    bbox : tuple[float, float, float, float]
+    ) -> tuple[float, float]:
     """
-    Computes the centroid of a normalized bounding box with coordinates relative
-    to the image dimensions, where (0,0) is the top-left and (1,1) is the bottom-right.
+    Computes the centroid of a normalized bounding box with
+    coordinates relative to the image dimensions, where (0,0)
+    is the top-left and (1,1) is the bottom-right.
 
     Parameters
     ----------
@@ -30,8 +34,10 @@ def get_centroid(bbox : tuple[float, float, float, float]) -> tuple[float, float
     return (xmin + w / 2, ymin + h / 2)
 
 
-def euclidean_distance(p1 : tuple[float, float],
-                       p2 : tuple[float, float]) -> float:
+def euclidean_distance(
+    p1 : tuple[float, float],
+    p2 : tuple[float, float]
+    ) -> float:
     """
     Calculates the Euclidean distance between two 2D points.
 
@@ -50,9 +56,11 @@ def euclidean_distance(p1 : tuple[float, float],
     return np.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
 
 
-def crop_face_from_frame(frame: np.ndarray,
-                         bbox: tuple[float, float, float, float],
-                         pad: float = 0.1) -> np.ndarray:
+def crop_face_from_frame(
+    frame: np.ndarray,
+    bbox: tuple[float, float, float, float],
+    pad: float = 0.1
+    ) -> np.ndarray:
     """
     Crops a face region from the frame using a normalized
     bounding box with optional padding.
@@ -78,13 +86,13 @@ def crop_face_from_frame(frame: np.ndarray,
     xmin, ymin, bw, bh = bbox
 
     # Apply padding and clamp to [0, 1]
-    # Note that padding expands the box by a fraction of its size on all sides.
+    # NOTE: the padding expands the box by a fraction of its size on all sides.
     xmin_p = max(0, xmin - bw * pad)
     ymin_p = max(0, ymin - bh * pad)
     xmax_p = min(1, xmin + bw * (1 + pad))
     ymax_p = min(1, ymin + bh * (1 + pad))
 
-    # Convert normalized coordinates to pixel values
+    # Convert normalized coordinates to pixel values.
     x1 = int(xmin_p * w)
     y1 = int(ymin_p * h)
     x2 = int(xmax_p * w)
@@ -93,9 +101,11 @@ def crop_face_from_frame(frame: np.ndarray,
     return frame[y1:y2, x1:x2]
 
 
-def smooth_bbox(prev_bbox: tuple[float, float, float, float],
-                new_bbox: tuple[float, float, float, float],
-                alpha: float = 0.6) -> tuple[float, float, float, float]:
+def smooth_bbox(
+    prev_bbox: tuple[float, float, float, float],
+    new_bbox: tuple[float, float, float, float],
+    alpha: float = 0.6
+    ) -> tuple[float, float, float, float]:
     """
     Smooths a bounding box using exponential moving average (EMA)
     to reduce jitter between frames.
@@ -146,9 +156,11 @@ def smooth_point(prev_point: tuple[float, float],
     return (smoothed_x, smoothed_y)
 
 
-def significant_change(prev_bbox: tuple[float, float, float, float],
-                       new_bbox: tuple[float, float, float, float],
-                       threshold: float = 0.01) -> bool:
+def significant_change(
+    prev_bbox: tuple[float, float, float, float],
+    new_bbox: tuple[float, float, float, float],
+    threshold: float = 0.01
+    ) -> bool:
     """
     Determines whether the size of a bounding box has changed
     significantly between frames.
@@ -175,11 +187,13 @@ def significant_change(prev_bbox: tuple[float, float, float, float],
     return dw > threshold or dh > threshold
 
 
-def crop_with_aspect_ratio(frame: np.ndarray,
-                           centroid: tuple[float, float],
-                           bbox: tuple[float, float, float, float],
-                           target_aspect_ratio: float,
-                           relative_height: float) -> np.ndarray:
+def crop_with_aspect_ratio(
+    frame: np.ndarray,
+    centroid: tuple[float, float],
+    bbox: tuple[float, float, float, float],
+    target_aspect_ratio: float,
+    relative_height: float
+    ) -> np.ndarray:
     """
     Crops an image around a face using a fixed aspect ratio while scaling
     with the detected face size.
@@ -211,26 +225,26 @@ def crop_with_aspect_ratio(frame: np.ndarray,
 
     Notes
     -----
-    - If the computed crop goes beyond the image border, it is clamped to fit.
-    - Normalized coordinates (0 to 1) are used for centroid and bounding box.
-    - This method avoids jitter from changing box shapes and preserves
-      face size consistency over time.
+        - If the computed crop goes beyond the image border, it is clamped to fit.
+        - Normalized coordinates (0 to 1) are used for centroid and bounding box.
+        - This method avoids jitter from changing box shapes and preserves
+        face size consistency over time.
     """
     img_h, img_w, _ = frame.shape
 
-    # Unpack normalized coordinates
+    # Unpack normalized coordinates.
     cx_norm, cy_norm = centroid
     _, _, _, bbox_height_norm = bbox
 
-    # Convert centroid to pixel coordinates
+    # Convert centroid to pixel coordinates.
     cx = int(cx_norm * img_w)
     cy = int(cy_norm * img_h)
 
-    # Determine crop height in pixels based on bounding box height
+    # Determine crop height in pixels based on bounding box height.
     crop_h = int(bbox_height_norm * img_h * relative_height)
     crop_w = int(crop_h * target_aspect_ratio)
 
-    # Compute pixel crop box around centroid
+    # Compute pixel crop box around centroid.
     x1 = max(0, cx - crop_w // 2)
     y1 = max(0, cy - crop_h // 2)
     x2 = min(img_w, cx + crop_w // 2)
@@ -241,7 +255,7 @@ def crop_with_aspect_ratio(frame: np.ndarray,
 
 def get_screen_resolution() -> tuple[int, int]:
     """
-    Detects the current operating system (Raspbian, Ubuntu, macOS)
+    Detects the current operating system (Raspbian, Ubuntu, MacOS)
     and returns the width and height of the primary monitor in pixels.
 
     Returns
@@ -252,14 +266,14 @@ def get_screen_resolution() -> tuple[int, int]:
     """
     system = platform.system()
 
-    if system == "Darwin":  # macOS
+    # MacOS
+    if system == "Darwin":
         output = subprocess.check_output(
             ["system_profiler", "SPDisplaysDataType"], text=True
         )
         match = re.search(r"Resolution: (\d+) x (\d+)", output)
         if match:
             width, height = map(int, match.groups())
-
 
     elif system == "Linux":
         distro = platform.freedesktop_os_release().get("ID", "").lower()
@@ -270,7 +284,6 @@ def get_screen_resolution() -> tuple[int, int]:
             match = re.search(r"mode\s+\"(\d+)x(\d+)\"", output)
             if match:
                 width, height = map(int, match.groups())
-
 
         elif "ubuntu" in distro:
             # Ubuntu: Use xrandr
@@ -283,9 +296,11 @@ def get_screen_resolution() -> tuple[int, int]:
     return width, height
 
 
-def generate_static(display_width: int,
-                    display_height: int,
-                    static_size : int) -> np.ndarray:
+def generate_static(
+    display_width: int,
+    display_height: int,
+    static_size : int
+    ) -> np.ndarray:
     """
     Generates a frame of classic TV static with "pixels" that
     are static_size x static_size (in pixels).
@@ -306,35 +321,40 @@ def generate_static(display_width: int,
     """
     h, w = display_height // static_size, display_width // static_size
 
-    # Create small static noise image (grayscale)
-    static_small = np.random.choice([0, 255],
-                                    size=(h, w),
-                                    p=[0.5, 0.5]).astype('uint8')
+    # Create small static noise image (grayscale).
+    static_small = np.random.choice(
+        [0, 255],
+        size=(h, w),
+        p=[0.5, 0.5]).astype('uint8')
 
-    # Resize small image to full display size (still grayscale 2D)
-    static_large = cv2.resize(static_small,
-                              (display_width, display_height),
-                              interpolation=cv2.INTER_NEAREST)
+    # Resize small image to full display size (still grayscale 2D).
+    static_large = cv2.resize(
+        static_small,
+        (display_width, display_height),
+        interpolation=cv2.INTER_NEAREST)
 
-    # Convert to 3 channels by stacking grayscale image 3 times
+    # Convert to 3 channels by stacking grayscale image 3 times.
     static = np.stack([static_large]*3, axis=2)  # shape (H, W, 3)
 
     return static
 
 
-def display_face(display_width : int,
-                 display_height : int,
-                 relative_height : float,
-                 smoothing : float,
-                 face_detection_confidence : float,
-                 static_size : int,
-                 debug : bool) -> None:
+def display_face(
+    display_width : int,
+    display_height : int,
+    relative_height : float,
+    smoothing : float,
+    face_detection_confidence : float,
+    static_size : int,
+    debug : bool
+    ) -> None:
     """
     Starts webcam video capture and tracks a single face in real time.
 
-    The system detects all faces in each frame using MediaPipe Face Detection,
-    selects one face (either randomly at the beginning or by proximity in subsequent frames),
-    and continuously crops and displays the face region with smoothing to avoid jitter.
+    The system detects all faces in each frame using MediaPipe
+    Face Detection, selects one face (either randomly at the
+    beginning or by proximity in subsequent frames), and continuously
+    crops and displays the face region with smoothing to avoid jitter.
 
     Features:
     - Tracks a consistent face across frames by comparing centroid distances.
@@ -349,19 +369,20 @@ def display_face(display_width : int,
     display_height : int
         Height of the display where the video will be played.
     relative_height : float
-        The effective vertical margin of the face. 1 equals no margin, 1.2 equals a 20%
-        margin, etc.
+        The effective vertical margin of the face. 1 equals no
+        margin, 1.2 equals a 20% margin, etc.
     smoothing : float
-        The amount of smoothing to create between frames to prevent jumpy transitions
-        between frames.
+        The amount of smoothing to create between frames to prevent
+        jumpy transitions between frames.
     face_detection_confidence : float
-        Confidence required for mediapipe to detect a face. For instance,
-        0.1 is very permissive and 0.9 is very strict.
+        Confidence required for mediapipe to detect a face. For
+        instance, 0.1 is very permissive and 0.9 is very strict.
     static_size : int
         The height and width of each static snowflake square (in pixels).
     debug : bool
-        Show the debug video with centroid, bounding box, and un-cropped video stream.
-    
+        Show the debug video with centroid, bounding box, and
+        un-cropped video stream.
+
     Returns
     -------
     None
@@ -384,7 +405,10 @@ def display_face(display_width : int,
 
     # Create fullscreen window.
     cv2.namedWindow("Webcam", cv2.WINDOW_NORMAL)
-    cv2.setWindowProperty("Webcam", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+    cv2.setWindowProperty(
+        "Webcam",
+        cv2.WND_PROP_FULLSCREEN,
+        cv2.WINDOW_FULLSCREEN)
 
 
     # Main event loop.
@@ -404,11 +428,11 @@ def display_face(display_width : int,
         results = face_detection.process(rgb_frame)
 
         # If a face is detected, continue.
-        if results.detections:
+        if results.detections:  # type: ignore
             centroids = []
             bboxes = []
 
-            for detection in results.detections:
+            for detection in results.detections:  # type: ignore
                 bboxC = detection.location_data.relative_bounding_box
                 bbox = (bboxC.xmin, bboxC.ymin, bboxC.width, bboxC.height)
                 centroid = get_centroid(bbox)
@@ -421,7 +445,8 @@ def display_face(display_width : int,
 
             else:
                 # Track face closest to the previously tracked centroid
-                distances = [euclidean_distance(c, tracked_centroid) for c in centroids]
+                distances = [euclidean_distance(c, tracked_centroid) 
+                             for c in centroids]
                 idx = int(np.argmin(distances))
 
             current_bbox = bboxes[idx]
@@ -429,16 +454,18 @@ def display_face(display_width : int,
             if tracked_centroid is None:
                 tracked_centroid = centroids[idx]
             else:
-                tracked_centroid = smooth_point(tracked_centroid,
-                                                centroids[idx],
-                                                alpha=smoothing)
+                tracked_centroid = smooth_point(
+                    tracked_centroid,
+                    centroids[idx],
+                    alpha=smoothing)
 
             if prev_bbox is None:
                 smoothed_bbox = current_bbox
             elif significant_change(prev_bbox, current_bbox):
-                smoothed_bbox = smooth_bbox(prev_bbox,
-                                            current_bbox,
-                                            alpha=smoothing)
+                smoothed_bbox = smooth_bbox(
+                    prev_bbox,
+                    current_bbox,
+                    alpha=smoothing)
             else:
                 # Hold previous box if no significant change
                 smoothed_bbox = prev_bbox
@@ -446,19 +473,20 @@ def display_face(display_width : int,
             prev_bbox = smoothed_bbox
 
             if tracked_centroid is not None:
-                cropped = crop_with_aspect_ratio(frame=frame,
-                                                centroid=tracked_centroid,
-                                                bbox=smoothed_bbox,
-                                                target_aspect_ratio=display_width/display_height,
-                                                relative_height=relative_height)
+                cropped = crop_with_aspect_ratio(
+                    frame=frame,
+                    centroid=tracked_centroid,
+                    bbox=smoothed_bbox,
+                    target_aspect_ratio=display_width/display_height,
+                    relative_height=relative_height)
 
         else:
-            # Reset tracking if no face is detected
+            # Reset tracking if no face is detected.
             tracked_centroid = None
             prev_bbox = None
 
         if debug and (cropped is not None) and (tracked_centroid is not None):
-            # Draw tracking box
+            # Draw tracking box.
             h, w, _ = frame.shape
             x1 = int(smoothed_bbox[0] * w)
             y1 = int(smoothed_bbox[1] * h)
@@ -484,9 +512,10 @@ def display_face(display_width : int,
 
             # If no face is detected, display static.
             else:
-                display_image = generate_static(display_width=display_width,
-                                                display_height=display_height,
-                                                static_size=static_size)
+                display_image = generate_static(
+                    display_width=display_width,
+                    display_height=display_height,
+                    static_size=static_size)
         
             cv2.imshow("Webcam", display_image)
             if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -500,15 +529,18 @@ def display_face(display_width : int,
 
 
 if __name__ == "__main__":
+    with open("config.yaml", "r") as f:
+        config = yaml.safe_load(f)
 
     # Detect which system is being used and get the screen resolution.
     display_width, display_height = get_screen_resolution()
 
     # Start the display.
-    display_face(display_width=display_width,
-                 display_height=display_height,
-                 relative_height=1.2,
-                 smoothing=0.6,
-                 face_detection_confidence=0.5,
-                 static_size=4,
-                 debug=False)
+    display_face(
+        display_width=display_width,
+        display_height=display_height,
+        relative_height=config["relative_height"],
+        smoothing=config["smoothing"],
+        face_detection_confidence=config["face_detection_confidence"],
+        static_size=config["static_size"],
+        debug=config["debug"])
