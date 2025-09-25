@@ -500,11 +500,11 @@ def display_face(
             cv2.circle(frame, (cx_px, cy_px), 5, (0, 0, 255), -1)
             cv2.putText(frame, f"Centroid: ({cx_px}, {cy_px})", (cx_px + 10, cy_px),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
-    
+
             cv2.imshow("Debug View", frame)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
-        
+
         else:
             # If a face is detected, proceed to display it.
             if cropped is not None:
@@ -516,7 +516,7 @@ def display_face(
                     display_width=display_width,
                     display_height=display_height,
                     static_size=static_size)
-        
+
             cv2.imshow("Webcam", display_image)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
