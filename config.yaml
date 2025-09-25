@@ -5,7 +5,7 @@ relative_height: 1.2
 smoothing: 0.6
 
 # Confidence threshold for face detection. Higher = fewer detections.
-face_detection_confidence: 0.5
+face_detection_confidence: 0.4
 
 # Number of pixels on the height and width of the square static "flakes"
 static_size: 4
