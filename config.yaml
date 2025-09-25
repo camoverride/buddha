@@ -4,6 +4,9 @@ relative_height: 1.2
 # The amount of smoothing between frames while tracking faces.
 smoothing: 0.6
 
+# The number of frames to be saved and replayed before static kicks in.
+recording_buffer_len: 60
+
 # Confidence threshold for face detection. Higher = fewer detections.
 face_detection_confidence: 0.4
 

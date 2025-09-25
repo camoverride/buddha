@@ -347,6 +347,7 @@ def display_face(
     smoothing : float,
     face_detection_confidence : float,
     static_size : int,
+    recording_buffer_len : int,
     debug : bool
     ) -> None:
     """
@@ -392,7 +393,7 @@ def display_face(
         Streams video.
     """
     # Buffer to store last 5 cropped frames
-    last_cropped_frames: deque[np.ndarray] = deque(maxlen=60)
+    last_cropped_frames: deque[np.ndarray] = deque(maxlen=recording_buffer_len)
     miss_count = 0
 
     # Start video capture.
@@ -560,4 +561,5 @@ if __name__ == "__main__":
         smoothing=config["smoothing"],
         face_detection_confidence=config["face_detection_confidence"],
         static_size=config["static_size"],
+        recording_buffer_len=config["recording_buffer_len"],
         debug=config["debug"])
