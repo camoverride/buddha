@@ -1,3 +1,4 @@
+from collections import deque
 import cv2
 from mediapipe.python.solutions import face_detection as mp_face_detection
 import numpy as np
@@ -379,6 +380,8 @@ def display_face(
         instance, 0.1 is very permissive and 0.9 is very strict.
     static_size : int
         The height and width of each static snowflake square (in pixels).
+    recording_buffer_len : int
+        The number of saved frames to be played back before static.
     debug : bool
         Show the debug video with centroid, bounding box, and
         un-cropped video stream.
@@ -388,6 +391,10 @@ def display_face(
     None
         Streams video.
     """
+    # Buffer to store last 5 cropped frames
+    last_cropped_frames: deque[np.ndarray] = deque(maxlen=60)
+    miss_count = 0
+
     # Start video capture.
     cap = cv2.VideoCapture(0)
 
@@ -480,6 +487,11 @@ def display_face(
                     target_aspect_ratio=display_width/display_height,
                     relative_height=relative_height)
 
+                # Save cropped frame to buffer.
+                last_cropped_frames.appendleft(cropped)
+                miss_count = 0
+
+
         else:
             # Reset tracking if no face is detected.
             tracked_centroid = None
@@ -510,12 +522,17 @@ def display_face(
             if cropped is not None:
                 display_image = cropped
 
-            # If no face is detected, display static.
+            # Play back saved faces for first 5 frames, then static.
             else:
-                display_image = generate_static(
-                    display_width=display_width,
-                    display_height=display_height,
-                    static_size=static_size)
+                if miss_count < len(last_cropped_frames):
+                    display_image = last_cropped_frames[miss_count]
+                    miss_count += 1
+                else:
+                    display_image = generate_static(
+                        display_width=display_width,
+                        display_height=display_height,
+                        static_size=static_size)
+
 
             cv2.imshow("Webcam", display_image)
             if cv2.waitKey(1) & 0xFF == ord('q'):
