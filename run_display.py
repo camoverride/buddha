@@ -332,6 +332,7 @@ def get_screen_resolution() -> tuple[int, int]:
                 width, height = map(int, match.groups())
 
 
+    print(f"Resolution: {width, height}")
     return width, height
 
 
