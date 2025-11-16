@@ -11,6 +11,44 @@ import yaml
 
 
 
+def overlay_crosshairs(frame: np.ndarray, centroid: tuple[float, float]) -> np.ndarray:
+    """
+    Overlay a simple gun-style crosshairs and text on the frame to indicate the face's centroid
+    and display "TARGET DETECTED" and "PERMISSION TO ENGAGE?" at the bottom.
+    
+    Parameters:
+    ----------
+    frame : np.ndarray
+        The input frame where the crosshairs and text will be overlaid.
+    centroid : tuple[float, float]
+        The (x, y) coordinates of the face centroid, in normalized coordinates [0, 1].
+        
+    Returns:
+    -------
+    np.ndarray
+        The frame with gun-style crosshairs and text overlayed.
+    """
+    h, w, _ = frame.shape
+    cx_px = int(centroid[0] * w)
+    cy_px = int(centroid[1] * h)
+
+    # Gun-style crosshairs (centered, thin red lines)
+    crosshair_length = 30  # Length of the crosshair arms
+    crosshair_thickness = 2  # Thin thickness for the lines
+    
+    # Draw the vertical line (short)
+    cv2.line(frame, (cx_px, cy_px - crosshair_length), (cx_px, cy_px + crosshair_length), (0, 0, 255), crosshair_thickness)
+    
+    # Draw the horizontal line (short)
+    cv2.line(frame, (cx_px - crosshair_length, cy_px), (cx_px + crosshair_length, cy_px), (0, 0, 255), crosshair_thickness)
+    
+    # Overlay text at the bottom of the frame
+    cv2.putText(frame, "TARGET DETECTED", (w // 2 - 120, h - 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+    cv2.putText(frame, "PERMISSION TO ENGAGE?", (w // 2 - 180, h - 10), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+
+    return frame
+
+
 def get_centroid(
     bbox : tuple[float, float, float, float]
     ) -> tuple[float, float]:
@@ -520,8 +558,9 @@ def display_face(
 
         else:
             # If a face is detected, proceed to display it.
-            if cropped is not None:
-                display_image = cropped
+            if cropped is not None and tracked_centroid is not None:
+                frame_with_overlay = overlay_crosshairs(cropped, tracked_centroid)
+                # display_image = cropped
 
             # Play back saved faces for first 5 frames, then static.
             else:
@@ -535,7 +574,7 @@ def display_face(
                         static_size=static_size)
 
 
-            cv2.imshow("Webcam", display_image)
+            cv2.imshow("Webcam", frame_with_overlay)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
