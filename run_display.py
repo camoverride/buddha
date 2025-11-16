@@ -561,6 +561,10 @@ def display_face(
             # If a face is detected, proceed to display it.
             if cropped is not None and tracked_centroid is not None:
                 frame_with_overlay = overlay_crosshairs(cropped, tracked_centroid)
+
+                # Resize the cropped frame to match the display resolution
+                frame_with_overlay_resized = cv2.resize(frame_with_overlay, (display_width, display_height))
+
             else:
                 # Handle the case where no face is detected or no cropped face is available
                 if miss_count < len(last_cropped_frames):
