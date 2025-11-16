@@ -560,19 +560,16 @@ def display_face(
             # If a face is detected, proceed to display it.
             if cropped is not None and tracked_centroid is not None:
                 frame_with_overlay = overlay_crosshairs(cropped, tracked_centroid)
-                # display_image = cropped
-
-            # Play back saved faces for first 5 frames, then static.
             else:
+                # Handle the case where no face is detected or no cropped face is available
                 if miss_count < len(last_cropped_frames):
-                    display_image = last_cropped_frames[miss_count]
+                    frame_with_overlay = last_cropped_frames[miss_count]
                     miss_count += 1
                 else:
-                    display_image = generate_static(
+                    frame_with_overlay = generate_static(
                         display_width=display_width,
                         display_height=display_height,
                         static_size=static_size)
-
 
             cv2.imshow("Webcam", frame_with_overlay)
             if cv2.waitKey(1) & 0xFF == ord('q'):
