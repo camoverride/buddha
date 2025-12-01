@@ -193,43 +193,12 @@ def crop_with_aspect_ratio(
     centroid: tuple[float, float],
     bbox: tuple[float, float, float, float],
     target_aspect_ratio: float,
-    relative_height: float
+    relative_height: float,
+    display_width: int,
+    display_height: int
     ) -> np.ndarray:
     """
-    Crops an image around a face using a fixed aspect ratio while scaling
-    with the detected face size.
-
-    The crop is centered on the face's centroid and sized based on the
-    height of the bounding box. The width is then calculated to maintain
-    the specified aspect ratio.
-
-    Parameters
-    ----------
-    frame : np.ndarray
-        The input image/frame as a NumPy array (H x W x C).
-    centroid : tuple[float, float]
-        The (x, y) centroid of the face in normalized coordinates [0, 1].
-    bbox : tuple[float, float, float, float]
-        Normalized bounding box [xmin, ymin, width, height].
-    target_aspect_ratio : float
-        The desired aspect ratio (width / height) of the cropped output.
-        For example: 1.0 for square crop, 2.0 for wide crop, 0.5 for tall crop.
-    relative_height : float
-        A scaling factor for how much of the bounding box height to use as
-        the crop height. 1.0 is 100% of face box height.
-
-    Returns
-    -------
-    np.ndarray
-        The cropped image as a NumPy array with shape approximately maintaining
-        the requested aspect ratio. The crop will be clamped to image boundaries.
-
-    Notes
-    -----
-        - If the computed crop goes beyond the image border, it is clamped to fit.
-        - Normalized coordinates (0 to 1) are used for centroid and bounding box.
-        - This method avoids jitter from changing box shapes and preserves
-        face size consistency over time.
+    Crops an image around a face and resizes it to fill the display.
     """
     img_h, img_w, _ = frame.shape
 
@@ -251,7 +220,14 @@ def crop_with_aspect_ratio(
     x2 = min(img_w, cx + crop_w // 2)
     y2 = min(img_h, cy + crop_h // 2)
 
-    return frame[y1:y2, x1:x2]
+    # Crop the face
+    cropped = frame[y1:y2, x1:x2]
+    
+    # ===== ADD THIS: Resize to fill display =====
+    # Resize the cropped face to fill the display
+    resized = cv2.resize(cropped, (display_width, display_height))
+    
+    return resized
 
 
 def get_screen_resolution() -> tuple[int, int]:
@@ -514,7 +490,9 @@ def display_face(
                     centroid=tracked_centroid,
                     bbox=smoothed_bbox,
                     target_aspect_ratio=display_width/display_height,
-                    relative_height=relative_height)
+                    relative_height=relative_height,
+                    display_width=display_width,
+                    display_height=display_height)
 
                 # Save cropped frame to buffer.
                 last_cropped_frames.appendleft(cropped)
