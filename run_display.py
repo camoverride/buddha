@@ -198,8 +198,7 @@ def crop_with_aspect_ratio(
     display_height: int
     ) -> np.ndarray:
     """
-    Crops an image around a face and letterboxes it to fill the display.
-    Blank areas will be black.
+    Crops an image around a face and resizes it to fill the display.
     """
     img_h, img_w, _ = frame.shape
 
@@ -224,34 +223,11 @@ def crop_with_aspect_ratio(
     # Crop the face
     cropped = frame[y1:y2, x1:x2]
     
-    # Get cropped dimensions
-    crop_h, crop_w = cropped.shape[:2]
-    crop_aspect = crop_w / crop_h
-    target_aspect = display_width / display_height
+    # ===== ADD THIS: Resize to fill display =====
+    # Resize the cropped face to fill the display
+    resized = cv2.resize(cropped, (display_width, display_height))
     
-    # Create black canvas
-    result = np.zeros((display_height, display_width, 3), dtype=np.uint8)
-    
-    if crop_aspect > target_aspect:
-        # Crop is wider than display - fit to width, letterbox top/bottom
-        scale = display_width / crop_w
-        new_h = int(crop_h * scale)
-        resized = cv2.resize(cropped, (display_width, new_h))
-        
-        # Center vertically
-        y_offset = (display_height - new_h) // 2
-        result[y_offset:y_offset + new_h, :] = resized
-    else:
-        # Crop is taller than display - fit to height, letterbox left/right
-        scale = display_height / crop_h
-        new_w = int(crop_w * scale)
-        resized = cv2.resize(cropped, (new_w, display_height))
-        
-        # Center horizontally
-        x_offset = (display_width - new_w) // 2
-        result[:, x_offset:x_offset + new_w] = resized
-    
-    return result
+    return resized
 
 
 def get_screen_resolution() -> tuple[int, int]:
