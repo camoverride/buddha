@@ -293,6 +293,9 @@ def get_screen_resolution() -> tuple[int, int]:
             if match:
                 width, height = map(int, match.groups())
 
+    # Hard code these values for plinth screens.
+    width = 768
+    height = 1024
 
     return width, height
 
@@ -552,8 +555,6 @@ if __name__ == "__main__":
 
     # Detect which system is being used and get the screen resolution.
     display_width, display_height = get_screen_resolution()
-    display_width = 768
-    display_height = 1024
 
     # Start the display.
     display_face(
