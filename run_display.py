@@ -102,6 +102,7 @@ def crop_face_from_frame(
     return frame[y1:y2, x1:x2]
 
 
+
 def smooth_bbox(
     prev_bbox: tuple[float, float, float, float],
     new_bbox: tuple[float, float, float, float],
@@ -384,6 +385,9 @@ def display_face(
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
     cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
+
+    # # Lower the FPS
+    # cap.set(cv2.CAP_PROP_FPS, 15)  # Try 15 FPS for 4K
 
     # Print actual camera settings
     actual_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
