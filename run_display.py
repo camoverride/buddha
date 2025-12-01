@@ -552,6 +552,8 @@ if __name__ == "__main__":
 
     # Detect which system is being used and get the screen resolution.
     display_width, display_height = get_screen_resolution()
+    display_width = 768
+    display_height = 1024
 
     # Start the display.
     display_face(
