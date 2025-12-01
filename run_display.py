@@ -22,7 +22,7 @@ def get_centroid(
     Parameters
     ----------
     bbox : tuple[float, float, float, float]
-        A tuple of normalized coordinates [xmin, ymin, width, height], 
+        A tuple of normalized coordinates [xmin, ymin, width, height],
         where values are in the range (0, 1).
 
     Returns
@@ -222,11 +222,11 @@ def crop_with_aspect_ratio(
 
     # Crop the face
     cropped = frame[y1:y2, x1:x2]
-    
+
     # ===== ADD THIS: Resize to fill display =====
     # Resize the cropped face to fill the display
     resized = cv2.resize(cropped, (display_width, display_height))
-    
+
     return resized
 
 
@@ -385,16 +385,13 @@ def display_face(
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
     cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
 
-    # # Lower the FPS
-    # cap.set(cv2.CAP_PROP_FPS, 15)  # Try 15 FPS for 4K
-    
     # Print actual camera settings
     actual_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     actual_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = cap.get(cv2.CAP_PROP_FPS)
     print(f"Camera resolution: {actual_width}x{actual_height}")
     print(f"Camera FPS: {fps}")
-    
+
     # Check if we got 4K
     if actual_width != 3840 or actual_height != 2160:
         print(f"WARNING: Not capturing in 4K! Got {actual_width}x{actual_height}")
@@ -457,7 +454,7 @@ def display_face(
 
             else:
                 # Track face closest to the previously tracked centroid
-                distances = [euclidean_distance(c, tracked_centroid) 
+                distances = [euclidean_distance(c, tracked_centroid)
                              for c in centroids]
                 idx = int(np.argmin(distances))
 
