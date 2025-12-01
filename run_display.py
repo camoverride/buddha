@@ -402,6 +402,28 @@ def display_face(
     # Start video capture.
     cap = cv2.VideoCapture(0)
 
+
+    # ==============================
+    # Force 4K resolution
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 3840)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 2160)
+    cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
+    
+    # Print actual camera settings
+    actual_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    actual_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    print(f"Camera resolution: {actual_width}x{actual_height}")
+    print(f"Camera FPS: {fps}")
+    
+    # Check if we got 4K
+    if actual_width != 3840 or actual_height != 2160:
+        print(f"WARNING: Not capturing in 4K! Got {actual_width}x{actual_height}")
+    else:
+        print("SUCCESS: Capturing in 4K (3840x2160)")
+    # ==============================
+
+
     if not cap.isOpened():
         raise RuntimeError("Failed to open webcam.")
 
