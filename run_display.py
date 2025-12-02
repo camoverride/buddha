@@ -9,6 +9,7 @@ import re
 import subprocess
 import threading
 from typing import Optional
+import uuid
 import yaml
 
 
@@ -359,7 +360,7 @@ def save_frames(
         print(f"Deleted: {file_to_delete}")
 
     # Save new frames.
-    filename = f"frames_{len(files)}.npy"
+    filename = f"{uuid.uuid4()}.npy"
     filepath = os.path.join(folder, filename)
     # np.save(filepath, np.stack(last_cropped_frames))
     frames_to_save = list(last_cropped_frames)[:last_cropped_frames.maxlen]
@@ -592,7 +593,6 @@ def display_random_videos():
 
     # Load first video
     current_file = os.path.join(folder, random.choice(files))
-    print(f"Playing video: {current_file}")
     current_frames = np.load(current_file)
     next_frames = None
     preload_thread = None
