@@ -360,7 +360,9 @@ def save_frames(
     # Save new frames
     filename = f"frames_{len(files)}.npy"
     filepath = os.path.join(folder, filename)
-    np.save(filepath, np.stack(last_cropped_frames))
+    # np.save(filepath, np.stack(last_cropped_frames))
+    frames_to_save = list(last_cropped_frames)[:last_cropped_frames.maxlen]
+    np.save(filepath, np.stack(frames_to_save))
 
 
 def get_face_video(
@@ -599,7 +601,11 @@ def display_random_videos():
             next_file = os.path.join(folder, random.choice(files))
             def preload():
                 nonlocal next_frames
-                next_frames = np.load(next_file)
+                try:
+                    next_frames = np.load(next_file)
+                except Exception as e:
+                    print("Failed to preload:", e)
+                    next_frames = None
             preload_thread = threading.Thread(target=preload)
             preload_thread.start()
 
@@ -614,7 +620,8 @@ def display_random_videos():
             preload_thread.join()
 
         # Swap videos
-        current_frames = next_frames
+        if next_frames is not None:
+            current_frames = next_frames
         next_frames = None
         preload_thread = None
 
