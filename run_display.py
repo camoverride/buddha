@@ -2,10 +2,12 @@ from collections import deque
 import cv2
 from mediapipe.python.solutions import face_detection as mp_face_detection
 import numpy as np
+import os
 import platform
 import random
 import re
 import subprocess
+import threading
 from typing import Optional
 import yaml
 
@@ -293,6 +295,7 @@ def get_screen_resolution() -> tuple[int, int]:
             if match:
                 width, height = map(int, match.groups())
 
+    # TODO: hard code these values for now! Or add to config.
 
     return width, height
 
@@ -340,22 +343,40 @@ def generate_static(
     return static
 
 
-def display_face(
+def save_frames(
+    last_cropped_frames : deque,
+    folder: str,
+    max_files : int = 10
+    ) -> None:
+
+    os.makedirs(folder, exist_ok=True)
+
+    # Delete a random file if folder has too many.
+    files = [f for f in os.listdir(folder) if f.endswith(".npy")]
+    if len(files) >= max_files:
+        file_to_delete = random.choice(files)
+        os.remove(os.path.join(folder, file_to_delete))
+
+    # Save new frames
+    filename = f"frames_{len(files)}.npy"
+    filepath = os.path.join(folder, filename)
+    np.save(filepath, np.stack(last_cropped_frames))
+
+
+def get_face_video(
     display_width: int,
     display_height: int,
     relative_height: float,
     smoothing: float,
     face_detection_confidence: float,
-    static_size: int,
     recording_buffer_len: int,
     debug: bool
 ) -> None:
     """
     Starts webcam video capture and tracks a single face in real time.
     """
-    # Buffer to store last 5 cropped frames
-    last_cropped_frames: deque[np.ndarray] = deque(maxlen=recording_buffer_len)
-    miss_count = 0
+    # Buffer to store last 60 cropped frames
+    recorded_frames: deque[np.ndarray] = deque(maxlen=recording_buffer_len)
 
     # Start video capture.
     cap = cv2.VideoCapture(0)
@@ -372,12 +393,12 @@ def display_face(
         model_selection=0,
         min_detection_confidence=face_detection_confidence)
 
-    # Create fullscreen window.
-    cv2.namedWindow("Webcam", cv2.WINDOW_NORMAL)
-    cv2.setWindowProperty(
-        "Webcam",
-        cv2.WND_PROP_FULLSCREEN,
-        cv2.WINDOW_FULLSCREEN)
+    # # Create fullscreen window.
+    # cv2.namedWindow("Webcam", cv2.WINDOW_NORMAL)
+    # cv2.setWindowProperty(
+    #     "Webcam",
+    #     cv2.WND_PROP_FULLSCREEN,
+    #     cv2.WINDOW_FULLSCREEN)
 
     # Main event loop.
     while True:
@@ -448,71 +469,115 @@ def display_face(
                     relative_height=relative_height)
 
                 # Save cropped frame to buffer.
-                last_cropped_frames.appendleft(cropped)
-                miss_count = 0
+                display_image = cv2.resize(
+                    cropped, 
+                    (display_width, display_height),
+                    interpolation=cv2.INTER_LINEAR
+                )
+                print(display_image.shape)
+                recorded_frames.appendleft(display_image)
 
         else:
             # Reset tracking if no face is detected.
             tracked_centroid = None
             prev_bbox = None
 
-        if debug and (cropped is not None) and (tracked_centroid is not None):
-            # Draw tracking box.
-            h, w, _ = frame.shape
-            x1 = int(smoothed_bbox[0] * w)
-            y1 = int(smoothed_bbox[1] * h)
-            x2 = int((smoothed_bbox[0] + smoothed_bbox[2]) * w)
-            y2 = int((smoothed_bbox[1] + smoothed_bbox[3]) * h)
+            # If there is a break in the detection streak (else condition)
+            # and enough frames have accumulated, write to disk!
+            if (len(recorded_frames) >= recording_buffer_len):
+                save_frames(
+                    recorded_frames,
+                    folder="videos",
+                    max_files=10)
 
-            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-            # Draw centroid marker
-            cx_px = int(tracked_centroid[0] * w)
-            cy_px = int(tracked_centroid[1] * h)
-            cv2.circle(frame, (cx_px, cy_px), 5, (0, 0, 255), -1)
-            cv2.putText(frame, f"Centroid: ({cx_px}, {cy_px})", (cx_px + 10, cy_px),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+                # Reset the recorded frames.
+                recorded_frames.clear()
 
-            cv2.imshow("Debug View", frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+        # if debug and (cropped is not None) and (tracked_centroid is not None):
+        #     # Draw tracking box.
+        #     h, w, _ = frame.shape
+        #     x1 = int(smoothed_bbox[0] * w)
+        #     y1 = int(smoothed_bbox[1] * h)
+        #     x2 = int((smoothed_bbox[0] + smoothed_bbox[2]) * w)
+        #     y2 = int((smoothed_bbox[1] + smoothed_bbox[3]) * h)
 
-        else:
-            # If a face is detected, proceed to display it.
-            if cropped is not None:
-                # Resize the cropped image to fill the display while maintaining aspect ratio
-                # This is where we ensure it fills the screen
-                display_image = cv2.resize(
-                    cropped, 
-                    (display_width, display_height),
-                    interpolation=cv2.INTER_LINEAR
-                )
+        #     cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        #     # Draw centroid marker
+        #     cx_px = int(tracked_centroid[0] * w)
+        #     cy_px = int(tracked_centroid[1] * h)
+        #     cv2.circle(frame, (cx_px, cy_px), 5, (0, 0, 255), -1)
+        #     cv2.putText(frame, f"Centroid: ({cx_px}, {cy_px})", (cx_px + 10, cy_px),
+        #                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 
-            # Play back saved faces for first 5 frames, then static.
-            else:
-                if miss_count < len(last_cropped_frames):
-                    # Also resize the saved frames
-                    saved_frame = last_cropped_frames[miss_count]
-                    display_image = cv2.resize(
-                        saved_frame,
-                        (display_width, display_height),
-                        interpolation=cv2.INTER_LINEAR
-                    )
-                    miss_count += 1
-                else:
-                    display_image = generate_static(
-                        display_width=display_width,
-                        display_height=display_height,
-                        static_size=static_size)
+        #     cv2.imshow("Debug View", frame)
+        #     if cv2.waitKey(1) & 0xFF == ord('q'):
+        #         break
 
-            cv2.imshow("Webcam", display_image)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+        # else:
+        #     # If a face is detected, proceed to display it.
+        #     if cropped is not None:
+        #         # Resize the cropped image to fill the display while maintaining aspect ratio
+        #         # This is where we ensure it fills the screen
+        #         display_image = cv2.resize(
+        #             cropped, 
+        #             (display_width, display_height),
+        #             interpolation=cv2.INTER_LINEAR
+        #         )
+
+        #     # Play back saved faces for first 5 frames, then static.
+        #     else:
+        #         pass
+                # if miss_count < len(recorded_frames):
+                #     print(miss_count, len(recorded_frames))
+                #     # Also resize the saved frames
+                #     saved_frame = recorded_frames[miss_count]
+                #     display_image = cv2.resize(
+                #         saved_frame,
+                #         (display_width, display_height),
+                #         interpolation=cv2.INTER_LINEAR
+                #     )
+                #     miss_count += 1
+                # else:
+                #     display_image = generate_static(
+                #         display_width=display_width,
+                #         display_height=display_height,
+                #         static_size=static_size)
+
+            # cv2.imshow("Webcam", display_image)
+            # if cv2.waitKey(1) & 0xFF == ord('q'):
+            #     break
 
     # Cleanup
     cap.release()
     cv2.destroyAllWindows()
     face_detection.close()
 
+
+def display_random_videos():
+    """
+    """
+    # Set video properties.
+    cv2.namedWindow("Random Video", cv2.WINDOW_NORMAL)
+    cv2.setWindowProperty(
+    "Random Video",
+    cv2.WND_PROP_FULLSCREEN,
+    cv2.WINDOW_FULLSCREEN)
+
+    # Main displaying event loop.
+    while True:
+        # Choose a random video.
+        folder = "videos"
+        files = [f for f in os.listdir(folder) if f.endswith(".npy")]
+        selected_file = os.path.join(folder, random.choice(files))
+
+        # Load the video.
+        frames = np.load(selected_file)
+
+        # Display all of the frames.
+        for frame in frames:
+            cv2.imshow("Random Video", frame)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
 
 
 if __name__ == "__main__":
@@ -522,13 +587,19 @@ if __name__ == "__main__":
     # Detect which system is being used and get the screen resolution.
     display_width, display_height = get_screen_resolution()
 
-    # Start the display.
-    display_face(
-        display_width=display_width,
-        display_height=display_height,
-        relative_height=config["relative_height"],
-        smoothing=config["smoothing"],
-        face_detection_confidence=config["face_detection_confidence"],
-        static_size=config["static_size"],
-        recording_buffer_len=config["recording_buffer_len"],
-        debug=config["debug"])
+    # Start the video recording function as a background thread.
+    video_collector = threading.Thread(
+        target=get_face_video,
+        args=(
+            display_width,
+            display_height,
+            config["relative_height"],
+            config["smoothing"],
+            config["face_detection_confidence"],
+            config["recording_buffer_len"],
+            config["debug"]))
+    
+    video_collector.start()
+
+    # Start the video player.
+    display_random_videos()
