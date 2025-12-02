@@ -553,31 +553,66 @@ def get_face_video(
     face_detection.close()
 
 
+# def display_random_videos():
+#     """
+#     """
+#     # Set video properties.
+#     cv2.namedWindow("Random Video", cv2.WINDOW_NORMAL)
+#     cv2.setWindowProperty(
+#     "Random Video",
+#     cv2.WND_PROP_FULLSCREEN,
+#     cv2.WINDOW_FULLSCREEN)
+
+#     # Main displaying event loop.
+#     while True:
+#         # Choose a random video.
+#         folder = "videos"
+#         files = [f for f in os.listdir(folder) if f.endswith(".npy")]
+#         selected_file = os.path.join(folder, random.choice(files))
+
+#         # Load the video.
+#         frames = np.load(selected_file)
+
+#         # Display all of the frames.
+#         for frame in frames:
+#             cv2.imshow("Random Video", frame)
+#             if cv2.waitKey(1) & 0xFF == ord('q'):
+#                 break
+
 def display_random_videos():
-    """
-    """
-    # Set video properties.
     cv2.namedWindow("Random Video", cv2.WINDOW_NORMAL)
-    cv2.setWindowProperty(
-    "Random Video",
-    cv2.WND_PROP_FULLSCREEN,
-    cv2.WINDOW_FULLSCREEN)
+    cv2.setWindowProperty("Random Video", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
-    # Main displaying event loop.
+    folder = "videos"
+    files = [f for f in os.listdir(folder) if f.endswith(".npy")]
+
+    # Preload first video
+    current_file = os.path.join(folder, random.choice(files))
+    current_frames = np.load(current_file)
+    next_frames = None
+
+    def preload(file_path):
+        nonlocal next_frames
+        next_frames = np.load(file_path)
+
     while True:
-        # Choose a random video.
-        folder = "videos"
-        files = [f for f in os.listdir(folder) if f.endswith(".npy")]
-        selected_file = os.path.join(folder, random.choice(files))
+        # Start preloading next video
+        next_file = os.path.join(folder, random.choice(files))
+        preload_thread = threading.Thread(target=preload, args=(next_file,))
+        preload_thread.start()
 
-        # Load the video.
-        frames = np.load(selected_file)
-
-        # Display all of the frames.
-        for frame in frames:
+        # Play current video
+        for frame in current_frames:
             cv2.imshow("Random Video", frame)
             if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+                return
+
+        # Wait for preload to finish
+        preload_thread.join()
+
+        # Swap videos
+        current_frames = next_frames
+        next_frames = None
 
 
 if __name__ == "__main__":
