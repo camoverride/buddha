@@ -128,7 +128,7 @@ if __name__ == "__main__":
     embedding = get_face_embedding(picture)
 
     # Save it. This is all we need!
-    save_embedding(embedding, filename="buddha_embedding.npy")
+    save_embedding(embedding, filename="buddha_embedding.npy")  # type: ignore
 
     # Test out the loading function.
     embedding_loaded = load_embedding(filename="buddha_embedding.npy")
