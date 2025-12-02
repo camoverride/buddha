@@ -579,6 +579,7 @@ def get_face_video(
 #             if cv2.waitKey(1) & 0xFF == ord('q'):
 #                 break
 
+
 def display_random_videos():
     cv2.namedWindow("Random Video", cv2.WINDOW_NORMAL)
     cv2.setWindowProperty("Random Video", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
@@ -586,20 +587,21 @@ def display_random_videos():
     folder = "videos"
     files = [f for f in os.listdir(folder) if f.endswith(".npy")]
 
-    # Preload first video
+    # Load first video
     current_file = os.path.join(folder, random.choice(files))
     current_frames = np.load(current_file)
     next_frames = None
-
-    def preload(file_path):
-        nonlocal next_frames
-        next_frames = np.load(file_path)
+    preload_thread = None
 
     while True:
-        # Start preloading next video
-        next_file = os.path.join(folder, random.choice(files))
-        preload_thread = threading.Thread(target=preload, args=(next_file,))
-        preload_thread.start()
+        # Start preloading next video if not already started
+        if preload_thread is None or not preload_thread.is_alive():
+            next_file = os.path.join(folder, random.choice(files))
+            def preload():
+                nonlocal next_frames
+                next_frames = np.load(next_file)
+            preload_thread = threading.Thread(target=preload)
+            preload_thread.start()
 
         # Play current video
         for frame in current_frames:
@@ -607,12 +609,15 @@ def display_random_videos():
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 return
 
-        # Wait for preload to finish
-        preload_thread.join()
+        # Wait for preload to finish (blocks only once, between videos)
+        if preload_thread is not None:
+            preload_thread.join()
 
         # Swap videos
         current_frames = next_frames
         next_frames = None
+        preload_thread = None
+
 
 
 if __name__ == "__main__":
