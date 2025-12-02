@@ -557,31 +557,51 @@ def get_face_video(
     face_detection.close()
 
 
+
+
 # def display_random_videos():
-#     """
-#     """
-#     # Set video properties.
 #     cv2.namedWindow("Random Video", cv2.WINDOW_NORMAL)
-#     cv2.setWindowProperty(
-#     "Random Video",
-#     cv2.WND_PROP_FULLSCREEN,
-#     cv2.WINDOW_FULLSCREEN)
+#     cv2.setWindowProperty("Random Video", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
-#     # Main displaying event loop.
+#     folder = "videos"
+#     files = [f for f in os.listdir(folder) if f.endswith(".npy")]
+
+#     # Load first video
+#     current_file = os.path.join(folder, random.choice(files))
+#     current_frames = np.load(current_file)
+#     next_frames = None
+#     preload_thread = None
+
 #     while True:
-#         # Choose a random video.
-#         folder = "videos"
-#         files = [f for f in os.listdir(folder) if f.endswith(".npy")]
-#         selected_file = os.path.join(folder, random.choice(files))
+#         # Start preloading next video if not already started
+#         if preload_thread is None or not preload_thread.is_alive():
+#             next_file = os.path.join(folder, random.choice(files))
+#             def preload():
+#                 nonlocal next_frames
+#                 try:
+#                     next_frames = np.load(next_file)
+#                 except Exception as e:
+#                     print("Failed to preload:", e)
+#                     next_frames = None
+#             preload_thread = threading.Thread(target=preload)
+#             preload_thread.start()
 
-#         # Load the video.
-#         frames = np.load(selected_file)
-
-#         # Display all of the frames.
-#         for frame in frames:
+#         # Play current video
+#         for frame in current_frames:
 #             cv2.imshow("Random Video", frame)
 #             if cv2.waitKey(1) & 0xFF == ord('q'):
-#                 break
+#                 return
+
+#         # Wait for preload to finish (blocks only once, between videos)
+#         if preload_thread is not None:
+#             preload_thread.join()
+
+#         # Swap videos
+#         if next_frames is not None:
+#             current_frames = next_frames
+#         next_frames = None
+#         preload_thread = None
+
 
 
 def display_random_videos():
@@ -589,9 +609,9 @@ def display_random_videos():
     cv2.setWindowProperty("Random Video", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
     folder = "videos"
-    files = [f for f in os.listdir(folder) if f.endswith(".npy")]
 
     # Load first video
+    files = [f for f in os.listdir(folder) if f.endswith(".npy")]
     current_file = os.path.join(folder, random.choice(files))
     current_frames = np.load(current_file)
     next_frames = None
@@ -600,7 +620,13 @@ def display_random_videos():
     while True:
         # Start preloading next video if not already started
         if preload_thread is None or not preload_thread.is_alive():
+
+            # ✅ Rebuild list each time to avoid deleted files
+            files = [f for f in os.listdir(folder) if f.endswith(".npy")]
+            if not files:
+                continue  # skip if no videos available
             next_file = os.path.join(folder, random.choice(files))
+
             def preload():
                 nonlocal next_frames
                 try:
@@ -608,6 +634,7 @@ def display_random_videos():
                 except Exception as e:
                     print("Failed to preload:", e)
                     next_frames = None
+
             preload_thread = threading.Thread(target=preload)
             preload_thread.start()
 
@@ -626,7 +653,6 @@ def display_random_videos():
             current_frames = next_frames
         next_frames = None
         preload_thread = None
-
 
 
 if __name__ == "__main__":
