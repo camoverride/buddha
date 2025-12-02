@@ -602,35 +602,42 @@ def preload_video(folder):
             continue
 
 
-def display_random_videos():
+def display_random_videos(folder="videos"):
     cv2.namedWindow("Random Video", cv2.WINDOW_NORMAL)
     cv2.setWindowProperty("Random Video", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
-    folder = "videos"
-    files = [f for f in os.listdir(folder) if f.endswith(".npy")]
+    def load_random_video():
+        """Tries to load a random .npy video from folder. Retries if deleted."""
+        while True:
+            files = [f for f in os.listdir(folder) if f.endswith(".npy")]
+            if not files:
+                return None
+            selected_file = os.path.join(folder, random.choice(files))
+            if os.path.exists(selected_file):
+                try:
+                    return np.load(selected_file)
+                except Exception as e:
+                    print(f"Failed to load {selected_file}: {e}")
+            # File was deleted or failed, try again
 
-    # Load first video
-    current_file = os.path.join(folder, random.choice(files))
-    current_frames = np.load(current_file)
+    current_frames = load_random_video()
     next_frames = None
     preload_thread = None
 
     while True:
-        # Start preloading next video if not already started
+        # Start preloading the next video
         if preload_thread is None or not preload_thread.is_alive():
-            preload_thread = threading.Thread(
-                target=lambda: preload_video("videos"),
-                daemon=True
-            )
+            preload_thread = threading.Thread(target=lambda: globals().update(next_frames=load_random_video()))
             preload_thread.start()
 
         # Play current video
-        for frame in current_frames:
-            cv2.imshow("Random Video", frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                return
+        if current_frames is not None:
+            for frame in current_frames:
+                cv2.imshow("Random Video", frame)
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    return
 
-        # Wait for preload to finish (blocks only once, between videos)
+        # Wait for preload to finish
         if preload_thread is not None:
             preload_thread.join()
 
@@ -639,6 +646,7 @@ def display_random_videos():
             current_frames = next_frames
         next_frames = None
         preload_thread = None
+
 
 
 
