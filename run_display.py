@@ -341,56 +341,17 @@ def generate_static(
 
 
 def display_face(
-    display_width : int,
-    display_height : int,
-    relative_height : float,
-    smoothing : float,
-    face_detection_confidence : float,
-    static_size : int,
-    recording_buffer_len : int,
-    debug : bool
-    ) -> None:
+    display_width: int,
+    display_height: int,
+    relative_height: float,
+    smoothing: float,
+    face_detection_confidence: float,
+    static_size: int,
+    recording_buffer_len: int,
+    debug: bool
+) -> None:
     """
     Starts webcam video capture and tracks a single face in real time.
-
-    The system detects all faces in each frame using MediaPipe
-    Face Detection, selects one face (either randomly at the
-    beginning or by proximity in subsequent frames), and continuously
-    crops and displays the face region with smoothing to avoid jitter.
-
-    Features:
-    - Tracks a consistent face across frames by comparing centroid distances.
-    - Applies exponential moving average smoothing to the bounding box.
-    - Adds optional padding around the cropped face.
-    - Automatically resets if no faces are detected.
-
-    Parameters
-    ----------
-    display_width : int
-        Width of the display where the video will be played.
-    display_height : int
-        Height of the display where the video will be played.
-    relative_height : float
-        The effective vertical margin of the face. 1 equals no
-        margin, 1.2 equals a 20% margin, etc.
-    smoothing : float
-        The amount of smoothing to create between frames to prevent
-        jumpy transitions between frames.
-    face_detection_confidence : float
-        Confidence required for mediapipe to detect a face. For
-        instance, 0.1 is very permissive and 0.9 is very strict.
-    static_size : int
-        The height and width of each static snowflake square (in pixels).
-    recording_buffer_len : int
-        The number of saved frames to be played back before static.
-    debug : bool
-        Show the debug video with centroid, bounding box, and
-        un-cropped video stream.
-
-    Returns
-    -------
-    None
-        Streams video.
     """
     # Buffer to store last 5 cropped frames
     last_cropped_frames: deque[np.ndarray] = deque(maxlen=recording_buffer_len)
@@ -417,7 +378,6 @@ def display_face(
         "Webcam",
         cv2.WND_PROP_FULLSCREEN,
         cv2.WINDOW_FULLSCREEN)
-
 
     # Main event loop.
     while True:
@@ -450,7 +410,6 @@ def display_face(
             if tracked_centroid is None:
                 # First time: choose a face randomly
                 idx = random.randint(0, len(centroids) - 1)
-
             else:
                 # Track face closest to the previously tracked centroid
                 distances = [euclidean_distance(c, tracked_centroid) 
@@ -492,7 +451,6 @@ def display_face(
                 last_cropped_frames.appendleft(cropped)
                 miss_count = 0
 
-
         else:
             # Reset tracking if no face is detected.
             tracked_centroid = None
@@ -521,19 +479,30 @@ def display_face(
         else:
             # If a face is detected, proceed to display it.
             if cropped is not None:
-                display_image = cropped
+                # Resize the cropped image to fill the display while maintaining aspect ratio
+                # This is where we ensure it fills the screen
+                display_image = cv2.resize(
+                    cropped, 
+                    (display_width, display_height),
+                    interpolation=cv2.INTER_LINEAR
+                )
 
             # Play back saved faces for first 5 frames, then static.
             else:
                 if miss_count < len(last_cropped_frames):
-                    display_image = last_cropped_frames[miss_count]
+                    # Also resize the saved frames
+                    saved_frame = last_cropped_frames[miss_count]
+                    display_image = cv2.resize(
+                        saved_frame,
+                        (display_width, display_height),
+                        interpolation=cv2.INTER_LINEAR
+                    )
                     miss_count += 1
                 else:
                     display_image = generate_static(
                         display_width=display_width,
                         display_height=display_height,
                         static_size=static_size)
-
 
             cv2.imshow("Webcam", display_image)
             if cv2.waitKey(1) & 0xFF == ord('q'):
