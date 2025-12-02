@@ -356,13 +356,15 @@ def save_frames(
     if len(files) >= max_files:
         file_to_delete = random.choice(files)
         os.remove(os.path.join(folder, file_to_delete))
+        print(f"Deleted: {file_to_delete}")
 
-    # Save new frames
+    # Save new frames.
     filename = f"frames_{len(files)}.npy"
     filepath = os.path.join(folder, filename)
     # np.save(filepath, np.stack(last_cropped_frames))
     frames_to_save = list(last_cropped_frames)[:last_cropped_frames.maxlen]
     np.save(filepath, np.stack(frames_to_save))
+    print(f"Saved: {filepath}")
 
 
 def get_face_video(
@@ -476,7 +478,6 @@ def get_face_video(
                     (display_width, display_height),
                     interpolation=cv2.INTER_LINEAR
                 )
-                print(display_image.shape)
                 recorded_frames.appendleft(display_image)
 
         else:
@@ -591,6 +592,7 @@ def display_random_videos():
 
     # Load first video
     current_file = os.path.join(folder, random.choice(files))
+    print(f"Playing video: {current_file}")
     current_frames = np.load(current_file)
     next_frames = None
     preload_thread = None
