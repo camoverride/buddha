@@ -584,6 +584,24 @@ def get_face_video(
 #                 break
 
 
+
+def preload_video(folder):
+    while True:
+        files = [f for f in os.listdir(folder) if f.endswith(".npy")]
+        if not files:
+            return None  # no files available
+        selected_file = os.path.join(folder, random.choice(files))
+        if os.path.exists(selected_file):
+            try:
+                frames = np.load(selected_file)
+                return frames
+            except Exception as e:
+                print(f"Failed to load {selected_file}: {e}")
+        else:
+            # File was deleted before loading, try again
+            continue
+
+
 def display_random_videos():
     cv2.namedWindow("Random Video", cv2.WINDOW_NORMAL)
     cv2.setWindowProperty("Random Video", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
@@ -600,15 +618,10 @@ def display_random_videos():
     while True:
         # Start preloading next video if not already started
         if preload_thread is None or not preload_thread.is_alive():
-            next_file = os.path.join(folder, random.choice(files))
-            def preload():
-                nonlocal next_frames
-                try:
-                    next_frames = np.load(next_file)
-                except Exception as e:
-                    print("Failed to preload:", e)
-                    next_frames = None
-            preload_thread = threading.Thread(target=preload)
+            preload_thread = threading.Thread(
+                target=lambda: preload_video("videos"),
+                daemon=True
+            )
             preload_thread.start()
 
         # Play current video
