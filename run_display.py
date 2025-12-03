@@ -8,6 +8,7 @@ import random
 import re
 import subprocess
 import threading
+import time
 from typing import Optional
 import uuid
 import yaml
@@ -553,6 +554,11 @@ def display_random_videos():
 
 
 if __name__ == "__main__":
+    # Rotate the display and sleep to give it time to take effect.
+    os.system("WAYLAND_DISPLAY=wayland-0 wlr-randr --output HDMI-A-1 --transform 180")
+    time.sleep(3)
+
+    # Load the config.
     with open("config.yaml", "r") as f:
         config = yaml.safe_load(f)
 
