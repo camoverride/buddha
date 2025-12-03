@@ -14,6 +14,7 @@ Paik's classic TV Buddha. Tested and ready for a gallery setting.
 - `source .venv/bin/activate`
 - `pip install -r requirements.txt`
 - `sudo apt-get install unclutter`
+- `v4l2-ctl --set-fmt-video=width=3840,height=2160,pixelformat=MJPG` (if using OSBOT camera)
 
 
 ## Test
