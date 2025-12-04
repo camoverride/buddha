@@ -366,8 +366,8 @@ def save_frames(
     # Add black margin on top and bottom
     margin_frames = [cv2.copyMakeBorder(
         src=frame,
-        top=200,
-        bottom=200,
+        top=400,
+        bottom=400,
         left=0,
         right=0,
         borderType=cv2.BORDER_CONSTANT) \
