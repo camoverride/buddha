@@ -363,7 +363,11 @@ def save_frames(
     filepath = os.path.join(folder, filename)
     # np.save(filepath, np.stack(last_cropped_frames))
     frames_to_save = list(last_cropped_frames)[:last_cropped_frames.maxlen]
-    np.save(filepath, np.stack(frames_to_save))
+
+    rotated_frames = [cv2.resize(f, (1080, 1920), interpolation=cv2.INTER_AREA) \
+                      for f in frames_to_save]
+
+    np.save(filepath, np.stack(rotated_frames))
     print(f"Saved: {filepath}")
 
 
@@ -555,7 +559,7 @@ def display_random_videos():
 
 if __name__ == "__main__":
     # Rotate the display and sleep to give it time to take effect.
-    os.system("WAYLAND_DISPLAY=wayland-0 wlr-randr --output HDMI-A-1 --transform 180")
+    os.system("WAYLAND_DISPLAY=wayland-0 wlr-randr --output HDMI-A-1 --transform 270")
     time.sleep(3)
 
     # Load the config.
