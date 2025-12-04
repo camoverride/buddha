@@ -361,11 +361,20 @@ def save_frames(
     # Save new frames.
     filename = f"{uuid.uuid4()}.npy"
     filepath = os.path.join(folder, filename)
-    # np.save(filepath, np.stack(last_cropped_frames))
-    frames_to_save = list(last_cropped_frames)[:last_cropped_frames.maxlen]
+    frames = list(last_cropped_frames)[:last_cropped_frames.maxlen]
 
-    rotated_frames = [cv2.resize(f, (1080, 1920), interpolation=cv2.INTER_AREA) \
-                      for f in frames_to_save]
+    # Add black margin on top and bottom
+    margin_frames = [cv2.copyMakeBorder(
+        src=frame,
+        top=200,
+        bottom=200,
+        left=0,
+        right=0,
+        borderType=cv2.BORDER_CONSTANT) \
+             for frame in frames]
+
+    rotated_frames = [cv2.resize(frame, (1080, 1920), interpolation=cv2.INTER_AREA) \
+                      for frame in margin_frames]
 
     np.save(filepath, np.stack(rotated_frames))
     print(f"Saved: {filepath}")
