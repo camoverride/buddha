@@ -486,8 +486,8 @@ def get_face_video(
                     folder="videos",
                     max_files=10)
 
-                # Reset the recorded frames.
-                recorded_frames.clear()
+            # Reset the recorded frames.
+            recorded_frames.clear()
 
     # Cleanup
     cap.release()
